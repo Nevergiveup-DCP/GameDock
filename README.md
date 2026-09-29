@@ -8,6 +8,8 @@ A Windows desktop game library manager built around one question other launchers
 
 [English](README.md) | [简体中文](README.zh-CN.md)
 
+![GameDock demo](docs/demo.gif)
+
 </div>
 
 ---
