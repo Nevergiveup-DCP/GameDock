@@ -1,0 +1,29 @@
+# 编译产物
+*.exe
+*.pdb
+*.dll
+bin/
+obj/
+
+# 本地数据（每个人的游戏库都不一样，不该进仓库）
+*.db
+*.log
+settings.txt
+installed/
+covers/
+backups/
+
+# 自测产生的临时文件
+_selftest/
+*_out.txt
+*_report.txt
+
+# 编辑器
+.vs/
+.vscode/
+*.user
+*.suo
+
+# 系统
+Thumbs.db
+desktop.ini
