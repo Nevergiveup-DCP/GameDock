@@ -6,6 +6,8 @@
 
 [English](README.md) | [简体中文](README.zh-CN.md)
 
+![游戏坞演示](docs/demo.gif)
+
 </div>
 
 ---
