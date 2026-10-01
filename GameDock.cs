@@ -30,6 +30,16 @@ static class Program
             Headless.LaunchByName(args[1]);
             return;
         }
+        if (args.Length >= 1 && args[0] == "--stats")
+        {
+            Headless.Stats();
+            return;
+        }
+        if (args.Length >= 1 && args[0] == "--export-csv")
+        {
+            Headless.ExportCsv();
+            return;
+        }
         Application.EnableVisualStyles();
         Application.SetCompatibleTextRenderingDefault(false);
         Application.Run(new DockForm());
@@ -68,6 +78,82 @@ static class Headless
                 "  |  " + (long)f.Lib[i].PlaySeconds + "s  |  " + f.Lib[i].Exe);
         File.WriteAllText(Path.Combine(Dir(), "list_report.txt"), sb.ToString(), Encoding.UTF8);
         f.Dispose();
+    }
+
+    public static string Fmt(double sec)
+    {
+        if (sec < 60) return (long)sec + "s";
+        double m = sec / 60.0;
+        if (m < 60) return (long)m + "m";
+        return (m / 60.0).ToString("0.0") + "h";
+    }
+
+    // 统计报告：总量、各平台分布、玩得最多的前十个
+    public static void Stats()
+    {
+        DockForm f = new DockForm();
+        double total = 0; int played = 0;
+        Dictionary<string, double> secs = new Dictionary<string, double>();
+        Dictionary<string, int> cnts = new Dictionary<string, int>();
+        for (int i = 0; i < f.Lib.Count; i++)
+        {
+            GameEntry g = f.Lib[i];
+            total += g.PlaySeconds;
+            if (g.PlaySeconds > 0) played++;
+            string k = (g.Platform == null || g.Platform.Length == 0) ? "未标注" : g.Platform;
+            if (!secs.ContainsKey(k)) { secs[k] = 0; cnts[k] = 0; }
+            secs[k] += g.PlaySeconds; cnts[k]++;
+        }
+        List<GameEntry> top = new List<GameEntry>(f.Lib);
+        top.Sort(delegate(GameEntry a, GameEntry b) { return b.PlaySeconds.CompareTo(a.PlaySeconds); });
+
+        StringBuilder sb = new StringBuilder();
+        sb.AppendLine("GameDock stats");
+        sb.AppendLine("library: " + f.Lib.Count + " games, " + played + " played, " +
+                      (f.Lib.Count - played) + " never launched");
+        sb.AppendLine("total playtime: " + Fmt(total));
+        sb.AppendLine();
+        sb.AppendLine("by platform:");
+        foreach (KeyValuePair<string, int> kv in cnts)
+            sb.AppendLine("  " + kv.Key.PadRight(12) + kv.Value + " games   " + Fmt(secs[kv.Key]));
+        sb.AppendLine();
+        sb.AppendLine("top by playtime:");
+        int n = Math.Min(10, top.Count);
+        for (int i = 0; i < n; i++)
+            sb.AppendLine("  " + (i + 1) + ". " + top[i].Name.PadRight(32) +
+                          Fmt(top[i].PlaySeconds).PadLeft(8) + "   last: " + top[i].Last);
+        string path = Path.Combine(Dir(), "stats_report.txt");
+        File.WriteAllText(path, sb.ToString(), Encoding.UTF8);
+        Console.WriteLine(sb.ToString());
+        Console.WriteLine("written: " + path);
+        f.Dispose();
+    }
+
+    // 导出整库为 CSV，方便自己拿表格分析或者做备份
+    public static void ExportCsv()
+    {
+        DockForm f = new DockForm();
+        StringBuilder sb = new StringBuilder();
+        sb.AppendLine("Name,Platform,Status,PlaySeconds,PlayHours,LaunchCount,Added,Last,AppId,Exe,Note");
+        for (int i = 0; i < f.Lib.Count; i++)
+        {
+            GameEntry g = f.Lib[i];
+            sb.AppendLine(Csv(g.Name) + "," + Csv(g.Platform) + "," + Csv(g.Status) + "," +
+                          ((long)g.PlaySeconds) + "," + (g.PlaySeconds / 3600.0).ToString("0.00") + "," +
+                          g.LaunchCount + "," + Csv(g.Added) + "," + Csv(g.Last) + "," + Csv(g.AppId) +
+                          "," + Csv(g.Exe) + "," + Csv(g.Note));
+        }
+        string path = Path.Combine(Dir(), "library_export.csv");
+        File.WriteAllText(path, sb.ToString(), new UTF8Encoding(true));
+        Console.WriteLine("written: " + path);
+        f.Dispose();
+    }
+
+    static string Csv(string s)
+    {
+        if (s == null) return "";
+        if (s.IndexOf(',') < 0 && s.IndexOf('"') < 0 && s.IndexOf('\n') < 0 && s.IndexOf('\r') < 0) return s;
+        return "\"" + s.Replace("\"", "\"\"") + "\"";
     }
 
     public static void LaunchByName(string name)
